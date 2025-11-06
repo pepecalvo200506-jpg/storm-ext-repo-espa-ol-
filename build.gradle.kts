@@ -12,7 +12,7 @@ buildscript {
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:8.7.3")
+        classpath("com.android.tools.build:gradle:8.13.0")
         // CloudStream gradle plugin which makes everything work and builds plugins
         classpath("com.github.recloudstream:gradle:-SNAPSHOT")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0")
@@ -52,13 +52,13 @@ subprojects {
         }
 
         compileOptions {
-            sourceCompatibility = JavaVersion.VERSION_17
-            targetCompatibility = JavaVersion.VERSION_17
+            sourceCompatibility = JavaVersion.VERSION_1_8
+            targetCompatibility = JavaVersion.VERSION_1_8
         }
 
         tasks.withType<KotlinJvmCompile> {
             compilerOptions {
-                jvmTarget.set(JvmTarget.JVM_17) // Required
+                jvmTarget.set(JvmTarget.JVM_1_8) // Required
                 freeCompilerArgs.addAll(
                     "-Xno-call-assertions",
                     "-Xno-param-assertions",
@@ -79,13 +79,13 @@ subprojects {
         // but you dont need to include any of them if you dont need them
         // https://github.com/recloudstream/cloudstream/blob/master/app/build.gradle
         implementation(kotlin("stdlib")) // adds standard kotlin features, like listOf, mapOf etc
-        implementation("com.github.Blatzar:NiceHttp:0.4.11") // HTTP Lib
-        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.1")
-        implementation("org.jsoup:jsoup:1.18.3") // HTML Parser
-        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0") // delay()
+        implementation("com.github.Blatzar:NiceHttp:0.4.13") // HTTP Lib
+        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.1")
+        implementation("org.jsoup:jsoup:1.21.2") // HTML Parser
+        implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2") // delay()
 
         //run JS
-        implementation("org.mozilla:rhino:1.7.14")
+        implementation("org.mozilla:rhino:1.8.0")
     }
 }
 
