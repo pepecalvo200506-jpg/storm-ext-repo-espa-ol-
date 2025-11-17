@@ -225,7 +225,7 @@ class CuevanaProvider : MainAPI() {
                 app.get(iframe).document.select("script")
                     .firstOrNull { it.html().contains("var url = '") }?.html()
                     ?.substringAfter("var url = '")?.substringBefore("';")?.let {
-                        loadSourceNameExtractor(languaje, it, mainUrl, subtitleCallback, callback)
+                        loadSourceNameExtractor(languaje, fixHostsLinks(it), mainUrl, subtitleCallback, callback)
                     }
             }
         }
@@ -258,3 +258,20 @@ suspend fun loadSourceNameExtractor(
         }
     }
 }
+
+fun fixHostsLinks(url: String): String {
+    return url
+        .replaceFirst("https://hglink.to", "https://streamwish.to")
+        .replaceFirst("https://swdyu.com", "https://streamwish.to")
+        .replaceFirst("https://cybervynx.com", "https://streamwish.to")
+        .replaceFirst("https://dumbalag.com", "https://streamwish.to")
+        .replaceFirst("https://mivalyo.com", "https://vidhidepro.com")
+        .replaceFirst("https://dinisglows.com", "https://vidhidepro.com")
+        .replaceFirst("https://dhtpre.com", "https://vidhidepro.com")
+        .replaceFirst("https://filemoon.link", "https://filemoon.sx")
+        .replaceFirst("https://sblona.com", "https://watchsb.com")
+        .replaceFirst("https://lulu.st", "https://lulustream.com")
+        .replaceFirst("https://uqload.io", "https://uqload.com")
+        .replaceFirst("https://do7go.com", "https://dood.la")
+}
+

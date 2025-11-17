@@ -1,11 +1,17 @@
 package com.stormunblessed
 
+import android.R
+import android.util.Log
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.AppUtils.parseJson
 import com.lagradost.cloudstream3.utils.AppUtils.toJson
 import com.lagradost.cloudstream3.utils.ExtractorLink
 import com.lagradost.cloudstream3.utils.loadExtractor
+import com.lagradost.cloudstream3.utils.newExtractorLink
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -263,6 +269,19 @@ class DoramasFlixProvider:MainAPI() {
 
     }
 
+    private fun getLangById(id: String): String{
+        return when(id){
+            "13109" -> "Coreano"
+            "13110" -> "Japones"
+            "13111" -> "Mandarin"
+            "13112" -> "Tailandes"
+            "37" -> "Castellano"
+            "38" -> "Latino"
+            "192" -> "Subtitulado"
+            else -> id
+        }
+    }
+
 
     override suspend fun loadLinks(
         data: String,
@@ -270,26 +289,68 @@ class DoramasFlixProvider:MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
+        Log.d("qwerty", "loadLinks: $data")
         if (data.contains("link")) {
             val parse = parseJson<List<LinksOnline>>(data)
             parse.map {
                 val link = it.link
-                loadExtractor(link!!, data, subtitleCallback, callback)
+                loadSourceNameExtractor(getLangById(it.lang ?: ""),fixHostsLinks(link!!), data, subtitleCallback, callback)
             }
         } else {
-            val episodeslinkRequestbody = "{\"operationName\":\"GetEpisodeLinks\",\"variables\":{\"episode_slug\":\"$data\"},\"query\":\"query GetEpisodeLinks(\$episode_slug: String!) {\\n  detailEpisode(filter: {slug: \$episode_slug, type_serie: \\\"dorama\\\"}) {\\n    links_online\\n   }\\n}\\n\"}"
+            val episodeslinkRequestbody = "{\"operationName\":\"GetEpisodeLinks\",\"variables\":{\"episode_slug\":\"${data.replaceFirst("$mainUrl/", "")}\"},\"query\":\"query GetEpisodeLinks(\$episode_slug: String!) {\\n  detailEpisode(filter: {slug: \$episode_slug, type_serie: \\\"dorama\\\"}) {\\n    links_online\\n   }\\n}\\n\"}"
             val request = app.post(doraflixapi, requestBody = episodeslinkRequestbody.toRequestBody(mediaType)).parsedSafe<MainDoramas>()
             //val test = app.post(doraflixapi, requestBody = episodeslinkRequestbody.toRequestBody(mediaType)).text
             //println("TESTEO $test")
             request?.data?.detailEpisode?.linksOnline?.map {
                 val link = it.link?.replace("https://swdyu.com","https://streamwish.to")?.replace("https://uqload.to","https://uqload.co")
                 //println("LINK $link")
-                loadExtractor(link!!, data, subtitleCallback, callback)
+                loadSourceNameExtractor(getLangById(it.lang ?: ""),fixHostsLinks(link!!), data, subtitleCallback, callback)
             }
         }
-
-
-
         return true
     }
 }
+
+suspend fun loadSourceNameExtractor(
+    source: String,
+    url: String,
+    referer: String? = null,
+    subtitleCallback: (SubtitleFile) -> Unit,
+    callback: (ExtractorLink) -> Unit,
+) {
+    loadExtractor(url, referer, subtitleCallback) { link ->
+        CoroutineScope(Dispatchers.IO).launch {
+            callback.invoke(
+                newExtractorLink(
+                    "$source[${link.source}]",
+                    "$source[${link.source}]",
+                    link.url,
+                ) {
+                    this.quality = link.quality
+                    this.type = link.type
+                    this.referer = link.referer
+                    this.headers = link.headers
+                    this.extractorData = link.extractorData
+                }
+            )
+        }
+    }
+}
+
+fun fixHostsLinks(url: String): String {
+    return url
+        .replaceFirst("https://hglink.to", "https://streamwish.to")
+        .replaceFirst("https://swdyu.com", "https://streamwish.to")
+        .replaceFirst("https://cybervynx.com", "https://streamwish.to")
+        .replaceFirst("https://dumbalag.com", "https://streamwish.to")
+        .replaceFirst("https://mivalyo.com", "https://vidhidepro.com")
+        .replaceFirst("https://dinisglows.com", "https://vidhidepro.com")
+        .replaceFirst("https://dhtpre.com", "https://vidhidepro.com")
+        .replaceFirst("https://filemoon.link", "https://filemoon.sx")
+        .replaceFirst("https://sblona.com", "https://watchsb.com")
+        .replaceFirst("https://lulu.st", "https://lulustream.com")
+        .replaceFirst("https://uqload.io", "https://uqload.com")
+        .replaceFirst("https://uqload.cx", "https://uqload.com")
+        .replaceFirst("https://do7go.com", "https://dood.la")
+}
+
