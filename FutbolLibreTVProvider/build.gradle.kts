@@ -3,10 +3,10 @@ version = 1
 
 
 cloudstream {
-    language = "en"
+    language = "mx"
     // All of these properties are optional, you can safely remove them
 
-    description = "Multilang live sports"
+    description = "Futbol eventos en vivo. Soccer live events."
     authors = listOf("redblacker8")
 
     /**
@@ -16,10 +16,10 @@ cloudstream {
      * 2: Slow
      * 3: Beta only
      * */
-    status = 0 // will be 3 if unspecified
+    status = 1 // will be 3 if unspecified
     tvTypes = listOf(
         "Live",
     )
 
-    iconUrl = "https://streamed.pk/favicon.png"
+    iconUrl = "https://ww.futbollibre-tv.su/favicon/android-icon-192x192.png"
 }
