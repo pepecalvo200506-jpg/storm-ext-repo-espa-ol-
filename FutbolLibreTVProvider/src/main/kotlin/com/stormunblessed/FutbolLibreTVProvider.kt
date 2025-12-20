@@ -91,7 +91,11 @@ class FutbolLibreTVProvider : MainAPI() {
             it.selectFirst("a")?.attr("href")?.replaceFirst("^/".toRegex(), "$mainUrl/")
         }
         val posterUrl = streamedInfo.searchPosterByTitle(matchTitle) ?: defaultPoster
-        return newLiveSearchResponse(title, EventData(title, urls, posterUrl).toJson(), TvType.Live) {
+        return newLiveSearchResponse(
+            title,
+            EventData(title, urls, posterUrl).toJson(),
+            TvType.Live
+        ) {
             this.posterUrl = posterUrl
         }
     }
@@ -107,7 +111,7 @@ class FutbolLibreTVProvider : MainAPI() {
         val eventData = AppUtils.tryParseJson<EventData>(data)
         if (eventData == null)
             return null
-        return newLiveStreamLoadResponse(eventData.title, data, data){
+        return newLiveStreamLoadResponse(eventData.title, data, data) {
             this.posterUrl = eventData.poster
         }
     }
@@ -127,7 +131,10 @@ class FutbolLibreTVProvider : MainAPI() {
             )
             if (frame.contains("?stream=")) {
                 val name = frame.substringAfter("?stream=")
-                val url = "https://futbollibrelibre.com/canales.php?stream=$name"
+                val url =
+                    if (name.startsWith("evento"))
+                        "https://futbollibrelibre.com/tv/canal.php?stream=$name"
+                    else "https://futbollibrelibre.com/canales.php?stream=$name"
                 val doc = app.get(url, referer = url).document
                 val link =
                     doc.select("script").firstOrNull { it.data().contains("var playbackURL = ") }
