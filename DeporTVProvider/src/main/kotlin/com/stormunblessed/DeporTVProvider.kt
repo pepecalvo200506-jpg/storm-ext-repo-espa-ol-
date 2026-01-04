@@ -197,6 +197,13 @@ class DeporTVProvider : MainAPI() {
         }
     }
 
+    fun String.replaceEnVivo1(): String {
+        if (!this.startsWith("https://envivo1.org/zk.php?id="))
+            return this;
+        val id = this.substringAfter("?id=")
+        return envivo1Org.get(id) ?: this
+    }
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -210,14 +217,15 @@ class DeporTVProvider : MainAPI() {
             val frame = if (it.contains("?r=")) {
                 base64Decode(
                     it.substringAfter("?r=")
-                ).replaceFirst(
-                    "https://vivolibre.org/global1.php?stream=",
-                    "https://streamtpcloud.com/global1.php?stream="
                 )
+                    .replaceFirst(
+                        "https://vivolibre.org/global1.php?stream=",
+                        "https://streamtpcloud.com/global1.php?stream="
+                    )
                     .replaceFirst(
                         "https://librefutbolhd.su/embed/canales.php?stream=",
                         "https://futbollibrelibre.com/canales.php?stream="
-                    )
+                    ).replaceEnVivo1()
             } else it
             if (frame.contains("canales.php?stream=")) {
                 // https://futbollibrelibre.com/canales.php?stream=
@@ -383,6 +391,37 @@ class DeporTVProvider : MainAPI() {
                         )
                     }
                 }
+            } else if (frame.startsWith("https://voodc.com")) {
+                val subFrameUrl = if (frame.startsWith("https://voodc.com/embed")) {
+                    app.get(frame).document.select("script")
+                        .first { it.attr("src").startsWith("//voodc.com/embed/0/0/") }?.let {
+                            var src = it.attr("src").substringAfter("//voodc.com/embed/0/0/")
+                            val id = src.substringBefore("/")
+                            val hash = src.substringAfter("/")
+                            "https://voodc.com/player/d/$hash/$id"
+                        }
+                } else {
+                    frame
+                }
+                if (subFrameUrl != null) {
+                    val source = URL(frame).host
+                    val url = app.get(subFrameUrl).document.select("script")
+                        .first { it.data().contains("var PlayS = '") }?.data()
+                        ?.substringAfter("var PlayS = '")
+                        ?.substringBefore("';")
+                    if (url != null) {
+                        callback(
+                            newExtractorLink(
+                                "${source}",
+                                "${source}",
+                                url
+                            ) {
+                                this.quality = Qualities.Unknown.value
+                            }
+                        )
+                    }
+                }
+
             }
         }
         return true
@@ -483,3 +522,33 @@ fun isEventLive(startHour: String): Boolean {
     return now.timeInMillis in (startCal.timeInMillis - fiveMinInMiliseconds)..endCal.timeInMillis
 }
 
+val envivo1Org = mapOf(
+    "1" to "https://voodc.com/embed/85818c98a08ba18c847a859a9e8d988887.html",
+    "2" to "https://voodc.com/embed/85818c98a08ba18c847a859a9c8b988886.html",
+    "3" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8b98858a.html",
+    "4" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8b98858a.html",
+    "5" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8b98858a.html",
+    "6" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8a988589.html",
+    "7" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8a988589.html",
+    "8" to "https://voodc.com/embed/85818c98a08aa28c847a859a9c8a988589.html",
+    "9" to "https://voodc.com/embed/85818c98a0909d8b847a8595a48d98888a7a.html",
+    "10" to "https://voodc.com/embed/85818c98a08d9a88847a85979f8c9885877a.html",
+    "11" to "https://voodc.com/embed/85818c98a08d9a88847a85979f8e9885877d.html",
+    "12" to "https://voodc.com/embed/85818c98a08aa184847a859a9c89988587.html",
+    "13" to "https://voodc.com/embed/85818c98a08d9a88847a85979f8f9885877e.html",
+    "14" to "https://voodc.com/embed/85818c98a08d9a88847a8597a08798858780.html",
+    "15" to "https://voodc.com/embed/85818c98a08d9c86847a8597a38798858a80.html",
+    "16" to "https://voodc.com/embed/85818c98a08d9c86847a8597a28e98858a7d.html",
+    "17" to "https://voodc.com/embed/85818c98a08d9f8c847a8598a0879886877a.html",
+    "18" to "https://voodc.com/embed/85818c98a08da289847a8598a38a9886897e.html",
+    "19" to "https://voodc.com/embed/85818c98a08e9988847a8598a58a98868b80.html",
+    "20" to "https://voodc.com/embed/85818c98a08e9988847a8598a58c98868b82.html",
+    "21" to "https://voodc.com/embed/85818c98a08e998b847a85999c8798868c7a.html",
+    "22" to "https://voodc.com/embed/85818c98a08e9e8c847a8599a08a9887877c.html",
+    "23" to "https://voodc.com/embed/85818c98a08f9d8c847a85959d8d98888482.html",
+    "24" to "https://voodc.com/embed/85818c98a08f9f8a847a8595a08d98888583.html",
+    "25" to "https://voodc.com/embed/85818c98a08fa188847a8595a1899888887c.html",
+    "26" to "https://voodc.com/embed/85818c98a0909e8a847a8595a49098888a81.html",
+    "27" to "https://voodc.com/embed/85818c98a090a088847a8595a59098888b7e.html",
+    "28" to "https://voodc.com/embed/85818c96a38c9e84847a85959d8a98878b80.html",
+)
