@@ -22,6 +22,7 @@ import com.lagradost.cloudstream3.utils.ExtractorLinkType
 import com.lagradost.cloudstream3.utils.getAndUnpack
 import com.lagradost.cloudstream3.utils.newDrmExtractorLink
 import com.lagradost.nicehttp.NiceResponse
+import com.stormunblessed.FTVHDApiResponse
 import com.stormunblessed.StreamedInfo
 import org.mozilla.javascript.Context
 import java.net.URL
@@ -34,21 +35,23 @@ data class La14HDMatchInfo(
     val title: String,
     val time: String,
     val status: String,
-    val language: String,
+    val language: String?,
     val date: String?
 )
 
 enum class SiteKey {
     RUSTICO,
     FUTBOLLIBRE,
+    FUTBOLLIBREORG,
     LA14HD,
     STREAMTPCLOUD,
+    STREAMVV33,
 }
 
 data class Site(
     val key: SiteKey,
     val mainUrl: String,
-    val agendaUrl: String
+    val agendaUrl: String,
 )
 
 class DeporTVProvider : MainAPI() {
@@ -63,6 +66,11 @@ class DeporTVProvider : MainAPI() {
                 "https://futbollibre-tv.su/es/agenda/"
             ),
             Site(
+                SiteKey.FUTBOLLIBREORG,
+                "https://futbollibres.org",
+                "https://a.ftvhd.com/diaries.json"
+            ),
+            Site(
                 SiteKey.LA14HD,
                 "https://la14hd.com",
                 "https://la14hd.com/eventos/json/agenda123.json"
@@ -71,6 +79,11 @@ class DeporTVProvider : MainAPI() {
                 SiteKey.STREAMTPCLOUD,
                 "https://streamtpcloud.com",
                 "https://streamtpcloud.com/eventos.json?nocache=${Date().time}"
+            ),
+            Site(
+                SiteKey.STREAMVV33,
+                "https://streamvv33.lat",
+                "https://streamvv33.lat/json/agenda123.json?nocache=${Date().time}",
             ),
         )
     override var name = "DeporTV"
@@ -96,16 +109,33 @@ class DeporTVProvider : MainAPI() {
             var res: NiceResponse? = null;
             try {
                 res = app.get(url, timeout = 5)
-            }catch(e: Exception){}
+            } catch (e: Exception) {
+            }
             var events: List<EventData> = emptyList()
-            if(res != null){
-                if (it.key.equals(SiteKey.LA14HD) || it.key.equals(SiteKey.STREAMTPCLOUD)) {
+            if (res != null) {
+                if (it.key.equals(SiteKey.LA14HD)
+                    || it.key.equals(SiteKey.STREAMTPCLOUD)
+                    || it.key.equals(SiteKey.STREAMVV33)
+                ) {
                     events = AppUtils.tryParseJson<List<La14HDMatchInfo>>(res.text)
                         ?.map {
                             EventData(
                                 it.title,
                                 transformHourToLocal(it.time, "GMT-5"),
                                 listOf(it.link),
+                                ""
+                            )
+                        } ?: emptyList()
+                } else if (it.key.equals(SiteKey.FUTBOLLIBREORG)) {
+                    events = AppUtils.tryParseJson<FTVHDApiResponse>(res.text)?.data
+                        ?.map {
+                            EventData(
+                                it.attributes.diaryDescription,
+                                transformHourToLocal(
+                                    it.attributes.diaryHour.substringBeforeLast(":"),
+                                    "GMT-5"
+                                ),
+                                it.attributes.embeds.data.map { it.attributes.embedIframe },
                                 ""
                             )
                         } ?: emptyList()
@@ -227,7 +257,7 @@ class DeporTVProvider : MainAPI() {
                         "https://futbollibrelibre.com/canales.php?stream="
                     )
             } else it
-            if (frame.contains("canales.php?stream=")) {
+            if (frame.contains("canales.php?stream=") || frame.contains("canal.php?stream=")) {
                 // https://futbollibrelibre.com/canales.php?stream=
                 // https://la14hd.com/vivo/canales.php?stream=
                 val source = URL(frame).host
@@ -395,7 +425,7 @@ class DeporTVProvider : MainAPI() {
                 frame.startsWith("https://envivo1.org/zk.php?id=")
                 || frame.startsWith("https://voodc.com")
             ) {
-                if(frame.startsWith("https://envivo1.org/zk.php?id=")){
+                if (frame.startsWith("https://envivo1.org/zk.php?id=")) {
                     val resolver = WebViewResolver(
                         interceptUrl = Regex("""voodc\.com/embed"""),
                         additionalUrls = listOf(Regex("""voodc\.com/embed""")),
