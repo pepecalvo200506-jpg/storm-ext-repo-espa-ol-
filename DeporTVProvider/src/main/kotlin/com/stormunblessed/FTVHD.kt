@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 
 data class FTVHDApiResponse(
     @JsonProperty("data") val data: List<FTVHDEventData>,
-    @JsonProperty("meta") val meta: FTVHDMeta
+    @JsonProperty("meta") val meta: FTVHDMeta? = null
 )
 
 data class FTVHDEventData(
@@ -17,6 +17,8 @@ data class FTVHDEventAttributes(
     @JsonProperty("diary_hour") val diaryHour: String,
     @JsonProperty("diary_description") val diaryDescription: String,
     @JsonProperty("date_diary") val dateDiary: String,
+    @JsonProperty("createdAt") val createdAt: String,
+    @JsonProperty("updatedAt") val updatedAt: String,
     @JsonProperty("channels") val channels: FTVHDChannelList,
     @JsonProperty("embeds") val embeds: FTVHDEmbedList,
     @JsonProperty("country") val country: FTVHDCountryData

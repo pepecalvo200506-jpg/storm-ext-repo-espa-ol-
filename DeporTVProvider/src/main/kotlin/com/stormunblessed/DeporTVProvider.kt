@@ -42,10 +42,10 @@ data class La14HDMatchInfo(
 enum class SiteKey {
     RUSTICO,
     FUTBOLLIBRE,
-    FUTBOLLIBREORG,
+    TVTVHD,
     LA14HD,
-    STREAMTPCLOUD,
-    STREAMVV33,
+    STREAMTP,
+    STREAMXX,
 }
 
 data class Site(
@@ -66,9 +66,9 @@ class DeporTVProvider : MainAPI() {
                 "https://futbollibre-tv.su/es/agenda/"
             ),
             Site(
-                SiteKey.FUTBOLLIBREORG,
-                "https://futbollibres.org",
-                "https://a.ftvhd.com/diaries.json"
+                SiteKey.TVTVHD,
+                "https://tvtvhd.com",
+                "https://pltvhd.com/diaries.json"
             ),
             Site(
                 SiteKey.LA14HD,
@@ -76,14 +76,14 @@ class DeporTVProvider : MainAPI() {
                 "https://la14hd.com/eventos/json/agenda123.json"
             ),
             Site(
-                SiteKey.STREAMTPCLOUD,
-                "https://streamtpcloud.com",
-                "https://streamtpcloud.com/eventos.json?nocache=${Date().time}"
+                SiteKey.STREAMTP,
+                "https://streamtp10.com",
+                "https://streamtp10.com/eventos.json?nocache=${Date().time}"
             ),
             Site(
-                SiteKey.STREAMVV33,
-                "https://streamvv33.lat",
-                "https://streamvv33.lat/json/agenda123.json?nocache=${Date().time}",
+                SiteKey.STREAMXX,
+                "https://streamx10.cloud",
+                "https://streamx10.cloud/json/agenda345.json?nocache=${Date().time}",
             ),
         )
     override var name = "DeporTV"
@@ -114,8 +114,8 @@ class DeporTVProvider : MainAPI() {
             var events: List<EventData> = emptyList()
             if (res != null) {
                 if (it.key.equals(SiteKey.LA14HD)
-                    || it.key.equals(SiteKey.STREAMTPCLOUD)
-                    || it.key.equals(SiteKey.STREAMVV33)
+                    || it.key.equals(SiteKey.STREAMTP)
+                    || it.key.equals(SiteKey.STREAMXX)
                 ) {
                     events = AppUtils.tryParseJson<List<La14HDMatchInfo>>(res.text)
                         ?.map {
@@ -126,7 +126,7 @@ class DeporTVProvider : MainAPI() {
                                 ""
                             )
                         } ?: emptyList()
-                } else if (it.key.equals(SiteKey.FUTBOLLIBREORG)) {
+                } else if (it.key.equals(SiteKey.TVTVHD)) {
                     events = AppUtils.tryParseJson<FTVHDApiResponse>(res.text)?.data
                         ?.map {
                             EventData(
@@ -250,11 +250,14 @@ class DeporTVProvider : MainAPI() {
                 )
                     .replaceFirst(
                         "https://vivolibre.org/global1.php?stream=",
-                        "https://streamtpcloud.com/global1.php?stream="
+                        "https://streamtp10.com/global1.php?stream="
+                    ).replaceFirst(
+                        "https://domainmy.lat/global1.php?stream=",
+                        "https://streamtp10.com/global1.php?stream="
                     )
                     .replaceFirst(
                         "https://librefutbolhd.su/embed/canales.php?stream=",
-                        "https://futbollibrelibre.com/canales.php?stream="
+                        "https://tvtvhd.com/vivo/canales.php?stream="
                     )
             } else it
             if (frame.contains("canales.php?stream=") || frame.contains("canal.php?stream=")) {
@@ -282,16 +285,16 @@ class DeporTVProvider : MainAPI() {
                         }
                     )
             } else if (frame.contains("global1.php?")) {
-//              https://streamvv33.lat/global1.php?channel=
-//                https://streamtpcloud.com/global1.php?stream=
+//              https://streamx10.cloud/global1.php?channel=
+//                https://streamtp10.com/global1.php?stream=
                 val source = URL(frame).host
                 val chanelNameParameter = frame.substringAfter("global1.php?").substringBefore("=")
                 val name = frame.substringAfter(".php?$chanelNameParameter=")
                 val doc = app.get(frame).document
                 var result =
-                    doc.select("script").firstOrNull { it.html().contains("playbackURL=") }?.let {
+                    doc.select("script").firstOrNull { it.html().contains("var playbackURL") }?.let {
                         var result = ""
-                        val scriptContent = it.data().substringBefore("var p2pConfig=")
+                        val scriptContent = it.data().substringBefore("var p2pConfig")
                         val rhino = Context.enter()
                         rhino.setInterpretedMode(true)
                         val scope = rhino.initStandardObjects()
