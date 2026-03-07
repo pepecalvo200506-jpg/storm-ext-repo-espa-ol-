@@ -141,36 +141,51 @@ class AnimeJlProvider : MainAPI() {
     ): Boolean {
         app.get(data).document.select("script")
             .firstOrNull { it.html().contains("var video = [];") }?.let { frameUrl ->
-                fetchUrls(frameUrl.html()).filter { it.startsWith("https://holuagency.top/load.php?") }
+                fetchUrls(frameUrl.html())
                     .amap {
-                        val doc = followRedirectsJS(it)
-                        val form = doc.selectFirst("form#link")
-                        val url = form?.attr("action")
-                        val token = form?.selectFirst("input[name=token]")?.attr("value")
-                        val back = form?.selectFirst("input[name=back]")?.attr("value")
-                        val sh = form?.selectFirst("input[name=sh]")?.attr("value")
-                        if (url != null) {
-                            val doc =
-                                app.post(
-                                    url,
-                                    data = mapOf("token" to token!!, "back" to back!!, "sh" to sh!!)
-                                ).document
-                            val containerFrameUrl =
-                                doc.selectFirst("a.cs-share__copy-link")?.attr("href")
-                            if (containerFrameUrl != null) {
-                                val doc = app.get(
-                                    containerFrameUrl,
-                                    cookies = mapOf("t" to token, "b" to back, "s" to sh)
-                                ).document
-                                doc.selectFirst("div#player iframe")?.attr("src")?.let {
-                                    loadExtractor(
-                                        fixHostsLinks(it),
-                                        data,
-                                        subtitleCallback,
-                                        callback
-                                    )
+                        if (it.startsWith("https://holuagency.top/load.php?")) {
+                            val doc = followRedirectsJS(it)
+                            val form = doc.selectFirst("form#link")
+                            val url = form?.attr("action")
+                            val token = form?.selectFirst("input[name=token]")?.attr("value")
+                            val back = form?.selectFirst("input[name=back]")?.attr("value")
+                            val sh = form?.selectFirst("input[name=sh]")?.attr("value")
+                            if (url != null) {
+                                val doc =
+                                    app.post(
+                                        url,
+                                        data = mapOf(
+                                            "token" to token!!,
+                                            "back" to back!!,
+                                            "sh" to sh!!
+                                        )
+                                    ).document
+                                val containerFrameUrl =
+                                    doc.selectFirst("a.cs-share__copy-link")?.attr("href")
+                                if (containerFrameUrl != null) {
+                                    val doc = app.get(
+                                        containerFrameUrl,
+                                        cookies = mapOf("t" to token, "b" to back, "s" to sh)
+                                    ).document
+                                    doc.selectFirst("div#player iframe")?.attr("src")?.let {
+                                        loadExtractor(
+                                            fixHostsLinks(it),
+                                            data,
+                                            subtitleCallback,
+                                            callback
+                                        )
+                                    }
                                 }
                             }
+                        } else {
+//                            TODO
+//                            https://www.burstcloud.co/embed/8b2eb5f8bb2aef82451b49434eae3a51032d97ec441ad065ec3b7d4353f38ed6/Kimetsu%20No%20Yaiba%20Castillo%20Infinito%20Latino.mp4
+                            loadExtractor(
+                                fixHostsLinks(it),
+                                data,
+                                subtitleCallback,
+                                callback
+                            )
                         }
                     }
             }
